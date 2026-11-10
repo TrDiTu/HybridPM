@@ -1,0 +1,32 @@
+name: Build
+on:
+  push:
+    branches: [victus]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  build:
+    runs-on: macos-15-intel
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Build
+        run: bash build.sh
+      - name: Package
+        run: |
+          cd build/out
+          ditto -c -k --keepParent HybridPM.kext HybridPM-RELEASE.zip
+          shasum -a 256 HybridPM-RELEASE.zip HybridPM.kext/Contents/MacOS/HybridPM > SHA256SUMS
+          git -C "$GITHUB_WORKSPACE" log -1 --format='%H %s' > COMMIT.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: HybridPM
+          path: |
+            build/out/HybridPM-RELEASE.zip
+            build/out/SHA256SUMS
+            build/out/COMMIT.txt
+            build/obj/compile.log
+          if-no-files-found: error
